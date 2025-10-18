@@ -42,7 +42,7 @@ npm start
 
 ## Project Structure
 
-.
+```
 ├── backend/
 │   ├── config/
 │   ├── controllers/
@@ -62,6 +62,7 @@ npm start
         ├── pages/
         ├── App.js
         └── index.js
+```
 
 ## Local Development
 
