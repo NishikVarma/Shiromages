@@ -32,13 +32,13 @@ npm start
 
 ## Tech Stack
 
-| Category      | Technology               |
-|---------------|--------------------------|
-| Frontend      | React                    |
-| Backend       | Node.js, Express.js      |
-| Database      | MongoDB (Mongoose)       |
-| File Storage  | AWS S3                   |
-| Image AI      | AWS Rekognition          |
+| Category | Technology |
+|----------|------------|
+| Frontend | React |
+| Backend | Node.js, Express.js |
+| Database | MongoDB (Mongoose) |
+| File Storage | AWS S3 |
+| Image AI | AWS Rekognition |
 
 ## Project Structure
 
