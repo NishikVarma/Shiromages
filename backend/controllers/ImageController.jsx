@@ -56,7 +56,7 @@ const applyTagsToS3 = async (key, bucket, tags) => {
   }
 };
 
-const upload = multer({ storage: multer.memoryStorage() }).single("image");
+const upload = multer({ storage: multer.memoryStorage() }).array("image", 10);
 
 exports.uploadImage = (req, res) => {
   upload(req, res, async (err) => {
