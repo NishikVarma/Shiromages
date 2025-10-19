@@ -4,7 +4,7 @@ const {
     searchImages, 
     deleteImage 
 } = require("../controllers/ImageController.jsx");
-const { protect } = require('../middleware/authmiddleware.jsx');
+const { protect } = require('../middleware/authMiddleware.jsx');
 const router = express.Router();
 
 router.post("/upload", protect, uploadImage);

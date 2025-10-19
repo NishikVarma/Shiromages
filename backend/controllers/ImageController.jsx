@@ -1,5 +1,5 @@
-const s3 = require("../utils/s3");
-const rekognition = require("../utils/rekognition"); // Import rekognition
+const s3 = require("../utils/s3.jsx");
+const rekognition = require("../utils/rekognition.jsx"); // Import rekognition
 const multer = require("multer");
 const pluralize = require("pluralize");
 
