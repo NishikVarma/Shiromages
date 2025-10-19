@@ -1,5 +1,5 @@
 const s3 = require("../utils/s3.jsx");
-const rekognition = require("../utils/rekognition.jsx"); // Import rekognition
+const rekognition = require("../utils/rekognition.jsx");
 const multer = require("multer");
 const pluralize = require("pluralize");
 
@@ -17,36 +17,43 @@ const logError = (context, error, key = "") => {
 };
 
 const getLabelsFromS3 = async (key, bucket) => {
-  // try {
-  //     const params = {
-  //         Image: { S3Object: { Bucket: bucket, Name: key } },
-  //         MaxLabels: 10,
-  //     };
-  //     const data = await rekognition.detectLabels(params).promise();
-  //     const labels = data.Labels.map((label) => label.Name.toLowerCase());
-  //     const normalizedLabels = labels.map((label) => pluralize.singular(label));
-  //     logInfo("Rekognition", `Detected labels for ${key}: [${normalizedLabels.join(', ')}]`);
-  //     return normalizedLabels;
-  // } catch (error) {
-  //     logError("Rekognition", error, key);
-  //     return [];
-  // }
-  return []; // Keep this line to disable Rekognition for now
+  try {
+    const params = {
+      Image: { S3Object: { Bucket: bucket, Name: key } },
+      MaxLabels: 10,
+    };
+    const data = await rekognition.detectLabels(params).promise();
+    const labels = data.Labels.map((label) => label.Name.toLowerCase());
+    const normalizedLabels = labels.map((label) => pluralize.singular(label));
+    logInfo(
+      "Rekognition",
+      `Detected labels for ${key}: [${normalizedLabels.join(", ")}]`
+    );
+    return normalizedLabels;
+  } catch (error) {
+    logError("Rekognition", error, key);
+    return [];
+  }
 };
 
 const applyTagsToS3 = async (key, bucket, tags) => {
-  // if (!tags || tags.length === 0) {
-  //     logInfo("S3 Tagging", `No tags to apply for ${key}. Skipping.`);
-  //     return;
-  // }
-  // try {
-  //     const tagSet = tags.map((tag) => ({ Key: tag, Value: tag }));
-  //     await s3.putObjectTagging({ Bucket: bucket, Key: key, Tagging: { TagSet: tagSet } }).promise();
-  //     logInfo("S3 Tagging", `Successfully applied tags to ${key}`);
-  // } catch (error) {
-  //     logError("S3 Tagging", error, key);
-  // }
-  return; // Keep this line to disable Rekognition for now
+  if (!tags || tags.length === 0) {
+    logInfo("S3 Tagging", `No tags to apply for ${key}. Skipping.`);
+    return;
+  }
+  try {
+    const tagSet = tags.map((tag) => ({ Key: tag, Value: tag }));
+    await s3
+      .putObjectTagging({
+        Bucket: bucket,
+        Key: key,
+        Tagging: { TagSet: tagSet },
+      })
+      .promise();
+    logInfo("S3 Tagging", `Successfully applied tags to ${key}`);
+  } catch (error) {
+    logError("S3 Tagging", error, key);
+  }
 };
 
 const upload = multer({ storage: multer.memoryStorage() }).single("image");
@@ -87,8 +94,8 @@ exports.uploadImage = (req, res) => {
       const data = await s3.upload(uploadParams).promise();
       logInfo("Upload", `Successfully uploaded '${key}' to S3.`);
 
-      // const tags = await getLabelsFromS3(key, bucket);
-      // await applyTagsToS3(key, bucket, tags);
+      const tags = await getLabelsFromS3(key, bucket);
+      await applyTagsToS3(key, bucket, tags);
 
       res.status(200).json({ url: data.Location, name: originalName });
     } catch (error) {
@@ -132,8 +139,8 @@ exports.searchImages = async (req, res) => {
                 if (tagErr.code !== 'NoSuchTagSet') logError("Search", tagErr, fullKey);
             }
 
-            const filenameMatch = !searchTerm || originalName.toLowerCase().includes(searchTerm);            
-            const tagsMatch = searchKeywords.length > 0 && searchKeywords.some(keyword => tags.includes(pluralize.singular(keyword)));            
+            const filenameMatch = !searchTerm || originalName.toLowerCase().includes(searchTerm);
+            const tagsMatch = searchKeywords.length > 0 && searchKeywords.some(keyword => tags.includes(pluralize.singular(keyword)));
             
             if (filenameMatch || tagsMatch) {
                 const url = `https://${bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${fullKey}`;

@@ -39,6 +39,7 @@ npm start
 | Database | MongoDB (Mongoose) |
 | File Storage | AWS S3 |
 | Image AI | AWS Rekognition |
+| Deployment | Render, Vercel |
 
 ## Project Structure
 
@@ -110,7 +111,9 @@ The React app should open at <http://localhost:3000> by default.
 
 ## Environment Variables
 
-Create a `.env` file in the `backend/` directory and populate these keys:
+### Backend (backend/.env)
+
+Create a .env file in the backend/ directory and populate these keys:
 
 ```properties
 # Server
@@ -129,9 +132,18 @@ AWS_ACCESS_KEY_ID=your_aws_access_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret_key
 ```
 
+### Frontend (frontend/.env)
+
+Create a .env file in the frontend/ directory for local development. This tells the React app where to send API requests.
+
+```properties
+# The backend URL for the local React dev server
+REACT_APP_API_URL=http://localhost:5000
+```
+
 Notes:
 
-- Keep your `.env` file out of version control.
+- Keep your .env files out of version control.
 - Ensure the IAM user has the required S3 permissions (PutObject, GetObject, ListBucket, DeleteObject).
 
 ## Deployment
