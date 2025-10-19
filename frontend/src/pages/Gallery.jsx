@@ -1,10 +1,16 @@
 import "../App.css";
-import React, { useState, useEffect, useCallback, useRef, useContext } from "react";
-import { useNavigate, Link } from 'react-router-dom';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useContext,
+} from "react";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { upload } from "../features/auth/authService.jsx";
 import { AuthContext } from "../context/AuthContext.jsx";
-import { AlertContext } from '../context/AlertContext.jsx';
+import { AlertContext } from "../context/AlertContext.jsx";
 import UploadProgress from "../components/uploadProgress.jsx";
 import ImageModal from "../components/imageModal.jsx";
 
@@ -21,20 +27,51 @@ function Gallery() {
 
   const { user, logout } = useContext(AuthContext);
   const { alertMsg, showAlert } = useContext(AlertContext);
-  
+
   const API_BASE_URL = process.env.REACT_APP_API_URL;
 
   const getAuthHeaders = useCallback(() => {
     const token = user?.token;
     if (!token) {
-        navigate('/login');
-        return {};
+      navigate("/login");
+      return {};
     }
     return {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     };
   }, [user, navigate]);
 
+  // This is the initial load effect. Its dependency array is stable.
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    const fetchInitialImages = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/images/search?q=`, {
+          headers: getAuthHeaders(),
+        });
+        if (!res.ok) {
+          if (res.status === 401) logout();
+          throw new Error("Failed to fetch initial images");
+        }
+        const data = await res.json();
+        setImages(data || []);
+      } catch (err) {
+        console.error("Initial fetch failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInitialImages();
+  }, [user, navigate, getAuthHeaders, logout, API_BASE_URL]);
+
+  // This is the separate search function for user interaction.
+  // It is no longer wrapped in useCallback to prevent dependency chain issues.
   const handleSearch = async () => {
     if (!user) return;
     try {
@@ -60,38 +97,9 @@ function Gallery() {
     }
   };
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    const fetchInitialImages = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/api/images/search?q=`,
-          { headers: getAuthHeaders() }
-        );
-        if (!res.ok) {
-          if (res.status === 401) logout();
-          throw new Error('Failed to fetch initial images');
-        }
-        const data = await res.json();
-        setImages(data || []);
-      } catch (err) {
-        console.error("Initial fetch failed:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInitialImages();
-  }, [user, navigate, getAuthHeaders, logout, API_BASE_URL]);
-
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   const handleDelete = async (indexToDelete) => {
@@ -100,13 +108,10 @@ function Gallery() {
     const key = imageToDelete.name;
 
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/images/delete/${key}`,
-        {
-          method: "DELETE",
-          headers: getAuthHeaders(),
-        }
-      );
+      const res = await fetch(`${API_BASE_URL}/api/images/delete/${key}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
       const data = await res.json();
       if (res.ok) {
         setImages((prevImages) =>
@@ -145,46 +150,39 @@ function Gallery() {
 
     setIsUploading(true);
     abortControllerRef.current = new AbortController();
-    const newImages = [];
-    let uploadSuccessCount = 0;
 
     try {
-      await Promise.all(
-        uploadQueue.map(async (item, index) => {
-          const formData = new FormData();
-          formData.append("image", item.file);
-          try {
-            const data = await upload(
-              formData,
-              user.token,
-              (progress) => {
-                setUploadQueue((prevQueue) => {
-                  const newQueue = [...prevQueue];
-                  if (newQueue[index]) {
-                    newQueue[index] = { ...newQueue[index], progress };
-                  }
-                  return newQueue;
-                });
-              },
-              abortControllerRef.current.signal
-            );
-            if (data?.url && data?.name) {
-              newImages.push(data);
-              uploadSuccessCount++;
-            }
-          } catch (err) {
-            if (axios.isCancel(err)) {
-              console.log("Upload cancelled by user");
-            } else {
-              console.error(`Upload failed for ${item.file.name}:`, err);
-              showAlert(`Failed to upload ${item.file.name}`);
-            }
-          }
-        })
+      const formData = new FormData();
+      uploadQueue.forEach((item) => formData.append("images", item.file));
+
+      setUploadQueue((prevQueue) =>
+        prevQueue.map((item) => ({ ...item, progress: 0 }))
       );
-      if (uploadSuccessCount > 0) {
-        setImages((prev) => [...prev, ...newImages]);
-        showAlert(`Successfully uploaded ${uploadSuccessCount} image(s)!`);
+
+      const data = await upload(
+        formData,
+        user.token,
+        (progress) => {
+          setUploadQueue((prevQueue) =>
+            prevQueue.map((item) => ({ ...item, progress }))
+          );
+        },
+        abortControllerRef.current.signal
+      );
+
+      if (Array.isArray(data) && data.length > 0) {
+        setImages((prev) => [...data, ...prev]);
+        showAlert(`Successfully uploaded ${data.length} image(s)!`);
+      } else {
+        showAlert("No new images were uploaded.");
+      }
+    } catch (err) {
+      if (axios.isCancel(err)) {
+        console.log("Upload cancelled by user");
+        showAlert("Upload cancelled.");
+      } else {
+        console.error("Upload failed:", err);
+        showAlert("Upload failed. Please try again.");
       }
     } finally {
       setIsUploading(false);
@@ -192,7 +190,7 @@ function Gallery() {
       if (fileInputRef.current) fileInputRef.current.value = null;
     }
   };
-  
+
   const openImageModal = (imageUrl) => setSelectedImage(imageUrl);
   const closeImageModal = () => setSelectedImage(null);
 

@@ -3,33 +3,30 @@ import React, { createContext, useState, useEffect } from 'react';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch (error) {
+      console.error("Failed to parse user from localStorage", error);
+      return null;
+    }
+  });
+
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    const checkUser = () => {
-      try {
-        const storedUser = sessionStorage.getItem('user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        }
-      } catch (error) {
-        console.error("Failed to parse user from session storage", error);
-      } finally {
-        setIsAuthLoading(false);
-      }
-    };
-
-    setTimeout(checkUser, 500);
+    const timer = setTimeout(() => setIsAuthLoading(false), 500);
+    return () => clearTimeout(timer);
   }, []);
 
   const login = (userData) => {
-    sessionStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
   };
 
   const logout = () => {
-    sessionStorage.removeItem('user');
+    localStorage.removeItem('user');
     setUser(null);
   };
 

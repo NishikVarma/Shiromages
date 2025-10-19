@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { registerUser, loginUser } = require('../controllers/userController.jsx');
-console.log('✅ User router loaded');
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+
+router.post('/register', express.json(), registerUser);
+router.post('/login', express.json(), loginUser);
 
 module.exports = router;
