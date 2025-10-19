@@ -21,56 +21,25 @@ function Gallery() {
 
   const { user, logout } = useContext(AuthContext);
   const { alertMsg, showAlert } = useContext(AlertContext);
+  
+  const API_BASE_URL = process.env.REACT_APP_API_URL;
 
   const getAuthHeaders = useCallback(() => {
     const token = user?.token;
     if (!token) {
-      navigate("/login");
-      return {};
+        navigate('/login');
+        return {};
     }
     return {
-      Authorization: `Bearer ${token}`,
+      'Authorization': `Bearer ${token}`,
     };
   }, [user, navigate]);
-
-  useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-
-    const fetchInitialImages = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch(`http://localhost:5000/api/images/search?q=`, {
-          headers: getAuthHeaders(),
-        });
-        if (!res.ok) {
-          if (res.status === 401) logout();
-          throw new Error("Failed to fetch initial images");
-        }
-        const data = await res.json();
-        setImages(data || []);
-      } catch (err) {
-        console.error("Initial fetch failed:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInitialImages();
-  }, [user, navigate, getAuthHeaders, logout]);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   const handleSearch = async () => {
     if (!user) return;
     try {
       const res = await fetch(
-        `http://localhost:5000/api/images/search?q=${searchTerm}`,
+        `${API_BASE_URL}/api/images/search?q=${searchTerm}`,
         { headers: getAuthHeaders() }
       );
 
@@ -91,6 +60,40 @@ function Gallery() {
     }
   };
 
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchInitialImages = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/images/search?q=`,
+          { headers: getAuthHeaders() }
+        );
+        if (!res.ok) {
+          if (res.status === 401) logout();
+          throw new Error('Failed to fetch initial images');
+        }
+        const data = await res.json();
+        setImages(data || []);
+      } catch (err) {
+        console.error("Initial fetch failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInitialImages();
+  }, [user, navigate, getAuthHeaders, logout, API_BASE_URL]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   const handleDelete = async (indexToDelete) => {
     const imageToDelete = images[indexToDelete];
     if (!imageToDelete) return;
@@ -98,7 +101,7 @@ function Gallery() {
 
     try {
       const res = await fetch(
-        `http://localhost:5000/api/images/delete/${key}`,
+        `${API_BASE_URL}/api/images/delete/${key}`,
         {
           method: "DELETE",
           headers: getAuthHeaders(),
@@ -179,7 +182,6 @@ function Gallery() {
           }
         })
       );
-
       if (uploadSuccessCount > 0) {
         setImages((prev) => [...prev, ...newImages]);
         showAlert(`Successfully uploaded ${uploadSuccessCount} image(s)!`);
@@ -190,7 +192,7 @@ function Gallery() {
       if (fileInputRef.current) fileInputRef.current.value = null;
     }
   };
-
+  
   const openImageModal = (imageUrl) => setSelectedImage(imageUrl);
   const closeImageModal = () => setSelectedImage(null);
 
@@ -223,7 +225,6 @@ function Gallery() {
           )}
         </div>
       </nav>
-
       {user && (
         <>
           <div className="upload-search">
@@ -237,7 +238,6 @@ function Gallery() {
                   if (e.key === "Enter") handleSearch();
                 }}
               />
-
               <button
                 onClick={() => handleSearch()}
                 className="btn btn-primary"
@@ -247,10 +247,6 @@ function Gallery() {
             </div>
 
             <div className="upload-box">
-              {/* This label acts as the new, styled "Choose Files" button. */}
-
-              {/* Clicking it will trigger the hidden file input inside. */}
-
               <label className="btn btn-primary">
                 Choose Files
                 <input
@@ -262,9 +258,6 @@ function Gallery() {
                   disabled={isUploading}
                 />
               </label>
-
-              {/* Your existing upload button remains the same. */}
-
               <button
                 onClick={executeUpload}
                 disabled={uploadQueue.length === 0 || isUploading}

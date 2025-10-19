@@ -1,10 +1,9 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/users/';
-const IMAGE_API_URL = 'http://localhost:5000/api/images/';
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 
 export const register = async (userData) => {
-  const response = await axios.post(API_URL + 'register', userData);
+  const response = await axios.post(`${API_BASE_URL}/api/users/register`, userData);
   if (response.data) {
     sessionStorage.setItem('user', JSON.stringify(response.data));
   }
@@ -12,7 +11,7 @@ export const register = async (userData) => {
 };
 
 export const login = async (userData) => {
-  const response = await axios.post(API_URL + 'login', userData);
+  const response = await axios.post(`${API_BASE_URL}/api/users/login`, userData);
   if (response.data) {
     sessionStorage.setItem('user', JSON.stringify(response.data));
   }
@@ -33,6 +32,7 @@ export const upload = async (formData, token, onProgress, signal) => {
     signal: signal,
   };
 
-  const response = await axios.post(IMAGE_API_URL + 'upload', formData, config);
+  const response = await axios.post(`${API_BASE_URL}/api/images/upload`, formData, config);
   return response.data;
 };
+
